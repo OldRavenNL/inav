@@ -47,6 +47,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
+#include "flight/mixer_tricopter.h"
 
 #include "rx/rx.h"
 
@@ -147,6 +148,11 @@ void servosInit(void)
     for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
         servoComputeScalingFactors(i);
     }
+	
+	if (mixerConfig()->platformType == PLATFORM_TRICOPTER)
+    {
+        triInitMixer(servoParamsMutable(SERVO_RUDDER), &servo[SERVO_RUDDER]);
+    }
 }
 
 int getServoCount(void)
@@ -236,6 +242,12 @@ void servoMixer(float dT)
 {
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
 
+    if (mixerConfig()->platformType == PLATFORM_TRICOPTER)
+	{
+		triServoMixer(axisPID[YAW]);
+	}
+	else
+	{
     if (FLIGHT_MODE(MANUAL_MODE)) {
         input[INPUT_STABILIZED_ROLL] = rcCommand[ROLL];
         input[INPUT_STABILIZED_PITCH] = rcCommand[PITCH];
@@ -360,6 +372,7 @@ void servoMixer(float dT)
          */
         servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
     }
+	}
 }
 
 #define SERVO_AUTOTRIM_TIMER_MS     2000

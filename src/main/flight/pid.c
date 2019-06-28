@@ -118,6 +118,8 @@ int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_
 
 STATIC_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
 
+STATIC_FASTRAM int16_t expectedGyroError[3] = {0};  // HJI
+
 static EXTENDED_FASTRAM pt1Filter_t windupLpf[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM uint8_t itermRelax;
 static EXTENDED_FASTRAM uint8_t itermRelaxType;
@@ -333,6 +335,12 @@ void pidResetErrorAccumulators(void)
         pidState[axis].errorGyroIf = 0.0f;
         pidState[axis].errorGyroIfLimit = 0.0f;
     }
+}
+
+void pidResetErrorAccumulatorsAxis(uint8_t axis)
+{
+    pidState[axis].errorGyroIf = 0.0f;
+    pidState[axis].errorGyroIfLimit = 0.0f;
 }
 
 static float pidRcCommandToAngle(int16_t stick, int16_t maxInclination)
@@ -662,9 +670,14 @@ static float applyDBoost(pidState_t *pidState, flight_dynamics_index_t axis) {
 }
 #endif
 
+void FAST_CODE pidSetExpectedGyroError(flight_dynamics_index_t axis, int16_t error)
+{
+    expectedGyroError[axis] = error;
+}
+
 static void FAST_CODE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis)
 {
-    const float rateError = pidState->rateTarget - pidState->gyroRate;
+    const float rateError = pidState->rateTarget - pidState->gyroRate + (float)expectedGyroError[axis];
 
     // Calculate new P-term
     float newPTerm = rateError * pidState->kP;

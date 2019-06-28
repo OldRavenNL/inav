@@ -85,6 +85,7 @@ COMMON_SRC = \
             flight/hil.c \
             flight/imu.c \
             flight/mixer.c \
+            flight/mixer_tricopter.c \
             flight/pid.c \
             flight/pid_autotune.c \
             flight/rth_estimator.c \

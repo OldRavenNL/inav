@@ -706,6 +706,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("CLI IS ACTIVE");
         case ARMING_DISABLED_PWM_OUTPUT_ERROR:
             return OSD_MESSAGE_STR("PWM INIT ERROR");
+        case ARMING_DISABLED_TAILTUNE:
+            return OSD_MESSAGE_STR("TAILTUNE");
             // Cases without message
         case ARMING_DISABLED_CMS_MENU:
             FALLTHROUGH;

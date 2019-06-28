@@ -182,3 +182,6 @@ int16_t getHeadingHoldTarget(void);
 
 void autotuneUpdateState(void);
 void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRateDps, float reachedRateDps, float pidOutput);
+
+void pidResetErrorAccumulatorsAxis(uint8_t axis);
+void FAST_CODE pidSetExpectedGyroError(flight_dynamics_index_t axis, int16_t error);
