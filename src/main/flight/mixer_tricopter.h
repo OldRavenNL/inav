@@ -18,6 +18,10 @@
 #ifndef MIXER_TRICOPTER_H_
 #define MIXER_TRICOPTER_H_
 
+#include "drivers/adc.h"
+
+#include "flight/servos.h"
+
 #define DYNAMIC_YAW_MINTHROTTLE_MIN (0)
 #define DYNMAIC_YAW_MINTHROTTLE_MAX (500)
 
@@ -48,8 +52,27 @@
 #define TAIL_THRUST_FACTOR_MIN      (10)
 #define TAIL_THRUST_FACTOR_MAX      (400)
 
+#define TAIL_MOTOR_INDEX_MIN        (0)
+#define TAIL_MOTOR_INDEX_MAX        (7)
+
 #define TAIL_SERVO_SPEED_MIN        (0)
 #define TAIL_SERVO_SPEED_MAX        (1000)
+
+#define YAW_BOOST_MIN               (0)
+#define YAW_BOOST_MAX               (700)
+
+#define TRI_TAIL_SERVO_ANGLE_MID                (90.0f)
+#define TRI_TAIL_SERVO_MAX_ANGLE                (40.0f)
+
+#define TRI_CURVE_FIRST_INDEX_ANGLE             (TRI_TAIL_SERVO_ANGLE_MID - TRI_TAIL_SERVO_MAX_ANGLE)
+#define TRI_MOTOR_FEEDBACK_LPF_CUTOFF_HZ        (5)
+#define TRI_SERVO_FEEDBACK_LPF_CUTOFF_HZ        (70)
+#define TRI_SERVO_SATURATED_GYRO_ERROR          (75.0f)
+#define TRI_SERVO_SATURATION_DPS_ERROR_LIMIT    (100.0f)
+#define TRI_TAIL_SERVO_INVALID_ANGLE_MAX        (TRI_TAIL_SERVO_ANGLE_MID + TRI_TAIL_SERVO_MAX_ANGLE + 3.0f)
+#define TRI_TAIL_SERVO_INVALID_ANGLE_MIN        (TRI_TAIL_SERVO_ANGLE_MID - TRI_TAIL_SERVO_MAX_ANGLE - 3.0f)
+#define TRI_TAIL_TUNE_MIN_DEADBAND              (12)
+#define TRI_YAW_FORCE_CURVE_SIZE                (80 + 1)
 
 typedef struct triflightConfig_s {
     uint16_t tri_dynamic_yaw_minthrottle;
@@ -61,23 +84,47 @@ typedef struct triflightConfig_s {
     uint16_t tri_servo_max_adc;
     uint16_t tri_servo_mid_adc;
     uint16_t tri_servo_min_adc;
+	uint8_t  tri_tail_motor_index;
 	int16_t  tri_tail_motor_thrustfactor;
 	int16_t  tri_tail_servo_speed;
+	uint16_t tri_yaw_boost;
 } triflightConfig_t;
 
 PG_DECLARE(triflightConfig_t, triflightConfig);
 
-// Servo feedback sources
+// Servo feedback sources. */
 typedef enum {
     TRI_SERVO_FB_VIRTUAL = 0,  // Virtual servo, no physical feedback signal from servo
     TRI_SERVO_FB_RSSI,         // Feedback signal from RSSI ADC
     TRI_SERVO_FB_CURRENT,      // Feedback signal from CURRENT ADC
 } triServoFeedbackSource_e;
 
-void     triInitMixer(servoParam_t *pTailServoConfig, int16_t *pTailServo);
-uint16_t triGetCurrentServoAngle(void);
-int16_t  triGetMotorCorrection(uint8_t motorIndex);
-void     triServoMixer(int16_t PIDoutput);
+float   triGetCurrentServoAngle(void);
+int16_t triGetMotorCorrection(uint8_t motorIndex);
+void    triInitMixer(servoParam_t *pTailServoConfig, int16_t *pTailServo);
+_Bool   triIsEnabledServoUnarmed(void);
+_Bool   triIsServoSaturated(float rateError);
+_Bool   triMixerInUse(void);
+void    triServoMixer(float scaledYawPid, float pidSumLimit, float dT);
+
+typedef struct triMixerConfig_s{
+    uint8_t tri_unarmed_servo;              // send tail servo correction pulses even when unarmed
+    uint8_t tri_servo_feedback;
+    int16_t tri_tail_motor_thrustfactor;
+    int16_t tri_tail_servo_speed;
+    uint16_t tri_servo_min_adc;
+    uint16_t tri_servo_mid_adc;
+    uint16_t tri_servo_max_adc;
+    uint16_t tri_motor_acc_yaw_correction;
+    uint16_t dummy;
+    float tri_motor_acceleration;
+    uint16_t tri_yaw_boost;
+} triMixerConfig_t;
+
+typedef enum {
+    TRI_ARMING_PREVENT_FLAG_INVALID_SERVO_ANGLE = 0x01,
+    TRI_ARMING_PREVENT_FLAG_UNARMED_TAIL_TUNE   = 0x02
+} triArmingPreventFlag_e;
 
 typedef enum {
     TT_IDLE = 0,
@@ -113,7 +160,7 @@ typedef enum {
 } tailtuneMode_e;
 
 typedef struct servoAvgAngle_s {
-    uint32_t sum;
+    float sum;
     uint16_t numOf;
 } servoAvgAngle_t;
 
@@ -121,9 +168,39 @@ typedef struct thrustTorque_s {
     tailTuneState_e state;
     uint32_t startBeepDelay_ms;
     uint32_t timestamp_ms;
+    uint32_t timestamp2_ms;
     uint32_t lastAdjTime_ms;
     servoAvgAngle_t servoAvgAngle;
+    float tailTuneGyroLimit;
 } thrustTorque_t;
+
+typedef struct tailServo_s {
+    _Bool feedbackHealthy;
+    float maxYawOutput;
+    float thrustFactor;
+    servoParam_t *pConf;       // Pointer to the tail servo configuration
+    int16_t *pOutput;          // Pointer to the servo output (setpoint) that controls the PWM output
+    adcFunction_e ADCChannel;
+    float maxDeflection;
+    int16_t speed;
+    float pitchZeroAngle;
+    float angleAtMin;
+    float angleAtMax;
+    float angleAtLinearMin;
+    float angleAtLinearMax;
+    float angle;               // Current measured angle
+    uint16_t ADCRaw;
+} tailServo_t;
+
+typedef struct tailMotor_s {
+    float virtualFeedBack;
+    float acceleration;        // Motor acceleration in output units (us) / second
+    float pitchCorrectionGain; // Gain added to the calculated tail motor pitch correction to gain more yaw output
+    int16_t lastCorrection;
+    uint16_t minOutput;
+    uint16_t linearMinOutput;  // Minimum motor output for linear calculation.
+    uint16_t outputRange;
+} tailMotor_t;
 
 typedef struct tailTune_s {
     tailtuneMode_e mode;

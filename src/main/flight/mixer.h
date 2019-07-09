@@ -120,3 +120,6 @@ void stopMotors(void);
 void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);
+
+uint16_t mixGetMotorOutputLow(void);
+uint16_t mixGetMotorOutputHigh(void);

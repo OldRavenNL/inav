@@ -244,7 +244,7 @@ void servoMixer(float dT)
 
     if (mixerConfig()->platformType == PLATFORM_TRICOPTER)
 	{
-		triServoMixer(axisPID[YAW]);
+		triServoMixer((float)axisPID[YAW], (float)pidProfile()->pidSumLimit, dT);
 	}
 	else
 	{

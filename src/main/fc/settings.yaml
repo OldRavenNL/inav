@@ -2049,6 +2049,11 @@ groups:
         min: TAIL_SERVO_MIN_ADC_MIN
         max: TAIL_SERVO_MIN_ADC_MAX
         type: uint16_t
+      - name: tri_tail_motor_index
+        field: tri_tail_motor_index
+        min: TAIL_MOTOR_INDEX_MIN
+        max: TAIL_MOTOR_INDEX_MAX
+        type: uint8_t
       - name: tri_tail_motor_thrustfactor
         field: tri_tail_motor_thrustfactor
         min: TAIL_THRUST_FACTOR_MIN
@@ -2059,3 +2064,8 @@ groups:
         min: TAIL_SERVO_SPEED_MIN
         max: TAIL_SERVO_SPEED_MAX
         type: int16_t
+      - name: tri_yaw_boost
+        field: tri_yaw_boost
+        min: YAW_BOOST_MIN
+        max: YAW_BOOST_MAX
+        type: uint16_t

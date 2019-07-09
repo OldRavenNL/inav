@@ -118,7 +118,7 @@ int32_t axisPID_P[FLIGHT_DYNAMICS_INDEX_COUNT], axisPID_I[FLIGHT_DYNAMICS_INDEX_
 
 STATIC_FASTRAM pidState_t pidState[FLIGHT_DYNAMICS_INDEX_COUNT];
 
-STATIC_FASTRAM int16_t expectedGyroError[3] = {0};  // HJI
+STATIC_FASTRAM int16_t expectedGyroError[3] = {0};
 
 static EXTENDED_FASTRAM pt1Filter_t windupLpf[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM uint8_t itermRelax;
@@ -993,4 +993,9 @@ void FAST_CODE pidController(void)
             pidApplyMulticopterRateController(&pidState[axis], axis);
         }
     }
+}
+
+float getdT(void)
+{
+    return dT;
 }
