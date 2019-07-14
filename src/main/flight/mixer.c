@@ -44,6 +44,7 @@
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_tricopter.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 
@@ -300,10 +301,16 @@ void FAST_CODE NOINLINE mixTable(const float dT)
 
     // motors for non-servo mixes
     for (int i = 0; i < motorCount; i++) {
-        rpyMix[i] =
-            (input[PITCH] * currentMixer[i].pitch +
-            input[ROLL] * currentMixer[i].roll +
-            -mixerConfig()->yaw_motor_direction * input[YAW] * currentMixer[i].yaw) * mixerScale;
+        if ((feature(FEATURE_TRIFLIGHT)) && (mixerConfig()->platformType == PLATFORM_TRICOPTER))
+            rpyMix[i] = (input[PITCH] * currentMixer[i].pitch +
+                         input[ROLL] * currentMixer[i].roll +
+                         -mixerConfig()->yaw_motor_direction * input[YAW] * currentMixer[i].yaw +
+                         triGetMotorCorrection(i)) * mixerScale;
+        else
+            rpyMix[i] = (input[PITCH] * currentMixer[i].pitch +
+                         input[ROLL] * currentMixer[i].roll +
+                         -mixerConfig()->yaw_motor_direction * input[YAW] * currentMixer[i].yaw) *
+                         mixerScale;
 
         if (rpyMix[i] > rpyMixMax) rpyMixMax = rpyMix[i];
         if (rpyMix[i] < rpyMixMin) rpyMixMin = rpyMix[i];
@@ -364,7 +371,10 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     // roll/pitch/yaw. This could move throttle down, but also up for those low throttle flips.
     if (ARMING_FLAG(ARMED)) {
         for (int i = 0; i < motorCount; i++) {
-            motor[i] = rpyMix[i] + constrain(throttleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
+            if ((feature(FEATURE_TRIFLIGHT)) && (mixerConfig()->platformType == PLATFORM_TRICOPTER))
+                motor[i] = rpyMix[i] + constrain(throttleCommand * currentMixer[i].throttle + triGetMotorCorrection(i), throttleMin, throttleMax);
+            else
+                motor[i] = rpyMix[i] + constrain(throttleCommand * currentMixer[i].throttle, throttleMin, throttleMax);
 
             if (failsafeIsActive()) {
                 motor[i] = constrain(motor[i], motorConfig()->mincommand, motorConfig()->maxthrottle);
