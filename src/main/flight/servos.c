@@ -149,7 +149,7 @@ void servosInit(void)
         servoComputeScalingFactors(i);
     }
 	
-	if (mixerConfig()->platformType == PLATFORM_TRICOPTER)
+	if ((feature(FEATURE_TRIFLIGHT)) && (mixerConfig()->platformType == PLATFORM_TRICOPTER))
     {
         triInitMixer(servoParamsMutable(SERVO_RUDDER), &servo[SERVO_RUDDER]);
     }
@@ -242,7 +242,7 @@ void servoMixer(float dT)
 {
     int16_t input[INPUT_SOURCE_COUNT]; // Range [-500:+500]
 
-    if (mixerConfig()->platformType == PLATFORM_TRICOPTER)
+    if ((feature(FEATURE_TRIFLIGHT)) && (mixerConfig()->platformType == PLATFORM_TRICOPTER))
 	{
 		triServoMixer(axisPID[YAW]);
 	}
