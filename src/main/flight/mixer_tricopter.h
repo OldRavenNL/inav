@@ -35,7 +35,7 @@
 #define MOTOR_ACCELERATION_MAX       (100)
 
 #define TAIL_SERVO_ANGLE_MAX_MIN     (0)
-#define TAIL_SERVO_ANGLE_MAX_MAX     (500)
+#define TAIL_SERVO_ANGLE_MAX_MAX     (400)
 
 #define TAIL_SERVO_FDBK_MIN         (0)
 #define TAIL_SERVO_FDBK_MAX         (2)
@@ -58,7 +58,7 @@
 #define TAIL_SERVO_SPEED_MIN        (0)
 #define TAIL_SERVO_SPEED_MAX        (1000)
 
-#define YAW_BOOST_MIN               (0)
+#define YAW_BOOST_MIN               (50)
 #define YAW_BOOST_MAX               (700)
 
 #define TRI_TAIL_SERVO_ANGLE_MID                (90.0f)

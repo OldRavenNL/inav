@@ -365,7 +365,10 @@ void FAST_CODE NOINLINE mixTable(const float dT)
     // roll/pitch/yaw. This could move throttle down, but also up for those low throttle flips.
     if (ARMING_FLAG(ARMED)) {
         for (int i = 0; i < motorCount; i++) {
-			const int16_t correction = triGetMotorCorrection(i);
+			int16_t correction = 0;
+			
+			if ((feature(FEATURE_TRIFLIGHT)) && (mixerConfig()->platformType == PLATFORM_TRICOPTER))
+				correction = triGetMotorCorrection(i);
 			
 			motor[i] = rpyMix[i] + constrain(throttleCommand * currentMixer[i].throttle, throttleMin, throttleMax) + correction;
 

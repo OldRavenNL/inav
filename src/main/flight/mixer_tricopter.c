@@ -65,7 +65,7 @@ PG_RESET_TEMPLATE(triflightConfig_t, triflightConfig,
 	.tri_tail_motor_index         = 0,
 	.tri_tail_motor_thrustfactor  = 138,
 	.tri_tail_servo_speed         = 300,
-	.tri_yaw_boost                = 240,
+	.tri_yaw_boost                = 100,
 );
 
 enum {
@@ -80,8 +80,6 @@ static tailMotor_t tailMotor       = { .virtualFeedBack = 1000.0f };
 static tailServo_t tailServo       = { .angle = TRI_TAIL_SERVO_ANGLE_MID, .ADCChannel = ADC_RSSI };
 static tailTune_t tailTune         = { .mode = TT_MODE_NONE };
 static int8_t triServoDirection;
-
-static const triflightConfig_t *gpTriMixerConfig;
 
 // Tail motor correction per servo angle. Index 0 is angle TRI_CURVE_FIRST_INDEX_ANGLE.
 static float motorPitchCorrectionCurve[TRI_YAW_FORCE_CURVE_SIZE];
@@ -113,22 +111,20 @@ static float         virtualServoStep(float currentAngle, int16_t servoSpeed,
 
 void triInitMixer(servoParam_t *pTailServoConfig, int16_t *pTailServoOutput)
 {
-    gpTriMixerConfig = triflightConfig();
-
     tailServo.pConf         = pTailServoConfig;
     tailServo.pOutput       = pTailServoOutput;
-    tailServo.thrustFactor  = gpTriMixerConfig->tri_tail_motor_thrustfactor / 10.0f;
-    tailServo.maxDeflection = gpTriMixerConfig->tri_servo_angle_at_max / 10.0f;
+    tailServo.thrustFactor  = triflightConfig()->tri_tail_motor_thrustfactor / 10.0f;
+    tailServo.maxDeflection = triflightConfig()->tri_servo_angle_at_max / 10.0f;
     tailServo.angleAtMin    = TRI_TAIL_SERVO_ANGLE_MID - tailServo.maxDeflection;
     tailServo.angleAtMax    = TRI_TAIL_SERVO_ANGLE_MID + tailServo.maxDeflection;
-    tailServo.speed         = gpTriMixerConfig->tri_tail_servo_speed / 10.0f;
-    tailServo.ADCChannel    = getServoFeedbackADCChannel(gpTriMixerConfig->tri_servo_feedback);
+    tailServo.speed         = triflightConfig()->tri_tail_servo_speed / 10.0f;
+    tailServo.ADCChannel    = getServoFeedbackADCChannel(triflightConfig()->tri_servo_feedback);
 
     tailMotor.outputRange         = mixGetMotorOutputHigh() - mixGetMotorOutputLow();
     tailMotor.minOutput           = mixGetMotorOutputLow();
     tailMotor.linearMinOutput     = tailMotor.outputRange * 0.05;
-    tailMotor.pitchCorrectionGain = gpTriMixerConfig->tri_yaw_boost / 100.0f;
-    tailMotor.acceleration        = (float) tailMotor.outputRange / gpTriMixerConfig->tri_motor_acceleration;
+    tailMotor.pitchCorrectionGain = triflightConfig()->tri_yaw_boost / 100.0f;
+    tailMotor.acceleration        = (float) tailMotor.outputRange / triflightConfig()->tri_motor_acceleration;
 
     initYawForceCurve();
 	
@@ -455,17 +451,18 @@ static float feedbackServoStep(uint16_t tailServoADC)
     const int16_t midValue        = triflightConfig()->tri_servo_mid_adc;
     const int16_t endValue        = ADCFeedback < midValue ? triflightConfig()->tri_servo_min_adc :
                                                              triflightConfig()->tri_servo_max_adc;
-    const float tailServoMaxAngle = triflightConfig()->tri_servo_angle_at_max;
+    const float tailServoMaxAngle = tailServo.maxDeflection;
     const float endAngle          = ADCFeedback < midValue ? TRI_TAIL_SERVO_ANGLE_MID - tailServoMaxAngle :
                                                              TRI_TAIL_SERVO_ANGLE_MID + tailServoMaxAngle;
-    const float currentAngle      = ((endAngle - TRI_TAIL_SERVO_ANGLE_MID) * (ADCFeedback - midValue) /
-                                     (endValue - midValue) + TRI_TAIL_SERVO_ANGLE_MID);
-    return currentAngle;
+    const float currentAngle      = (endAngle - TRI_TAIL_SERVO_ANGLE_MID) * (ADCFeedback - midValue) /
+                                    (endValue - midValue) + TRI_TAIL_SERVO_ANGLE_MID;
+    
+	return currentAngle;
 }
 
 static void updateServoAngle(float dT)
 {
-    if (gpTriMixerConfig->tri_servo_feedback == TRI_SERVO_FB_VIRTUAL)
+    if (triflightConfig()->tri_servo_feedback == TRI_SERVO_FB_VIRTUAL)
 	{
         tailServo.angle = virtualServoStep(tailServo.angle, tailServo.speed, dT, tailServo.pConf, *tailServo.pOutput);
     }
@@ -514,7 +511,7 @@ static void predictGyroOnDeceleration(void)
 {
     static float previousMotorSpeed = 1000.0f;
 
-    if (gpTriMixerConfig->tri_motor_acc_yaw_correction > 0)
+    if (triflightConfig()->tri_motor_acc_yaw_correction > 0)
     {
         const float tailMotorSpeed = tailMotor.virtualFeedBack;
         // Calculate how much the motor speed changed since last time
@@ -527,7 +524,7 @@ static void predictGyroOnDeceleration(void)
             // Tests have shown that this is mostly needed when throttle is cut (motor decelerating), so only
             // set the expected gyro error in that case.
             // Set the expected axis error based on tail motor acceleration and configured gain
-            error  = acceleration * gpTriMixerConfig->tri_motor_acc_yaw_correction * 10.0f;
+            error  = acceleration * triflightConfig()->tri_motor_acc_yaw_correction * 10.0f;
             error *= sin_approx(DEGREES_TO_RADIANS(triGetCurrentServoAngle()));
         }
 
@@ -907,7 +904,7 @@ static void tailTuneModeServoSetup(struct servoSetup_t *pSS, servoParam_t *pServ
                             const float avgServoSpeed = (2.0f * tailServo.maxDeflection) / avgTime * 1000.0f;
 
                             triflightConfigMutable()->tri_tail_servo_speed = avgServoSpeed;
-                            tailServo.speed = gpTriMixerConfig->tri_tail_servo_speed;
+                            tailServo.speed = triflightConfig()->tri_tail_servo_speed;
                             pSS->cal.done = true;
                             pSS->servoVal = pServoConf->middle;
                         }
@@ -925,7 +922,7 @@ static void tailTuneModeServoSetup(struct servoSetup_t *pSS, servoParam_t *pServ
                 break;
             case SS_C_MAX:
                 // Wait for the servo to reach max position
-                if (tailServo.ADCRaw > (gpTriMixerConfig->tri_servo_max_adc - 10)) {
+                if (tailServo.ADCRaw > (triflightConfig()->tri_servo_max_adc - 10)) {
                     if (!pSS->cal.waitingServoToStop) {
                         pSS->cal.avg.sum += GetCurrentDelay_ms(pSS->cal.timestamp_ms);
                         pSS->cal.avg.numOf++;
