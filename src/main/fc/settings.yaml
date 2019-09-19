@@ -2003,16 +2003,6 @@ groups:
     type: triflightConfig_t
     headers: ["flight/mixer_tricopter.h"]
     members:
-      - name: tri_dynamic_yaw_minthrottle
-        field: tri_dynamic_yaw_minthrottle
-        min: DYNAMIC_YAW_MINTHROTTLE_MIN
-        max: DYNMAIC_YAW_MINTHROTTLE_MAX
-        type: uint16_t
-      - name: tri_dynamic_yaw_maxthrottle
-        field: tri_dynamic_yaw_maxthrottle
-        min: DYNAMIC_YAW_MAXTHROTTLE_MIN
-        max: DYNAMIC_YAW_MAXTHROTTLE_MAX
-        type: uint16_t
       - name: tri_motor_acc_yaw_correction
         field: tri_motor_acc_yaw_correction
         min: MOTOR_ACC_YAW_CORRECTION_MIN

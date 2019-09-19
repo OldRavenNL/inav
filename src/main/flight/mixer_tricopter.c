@@ -53,19 +53,17 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(triflightConfig_t, triflightConfig, PG_TRIFLIGHT_CONFIG, 0);
 
 PG_RESET_TEMPLATE(triflightConfig_t, triflightConfig,
-    .tri_dynamic_yaw_minthrottle  = 290,
-    .tri_dynamic_yaw_maxthrottle  = 100,
-	.tri_motor_acc_yaw_correction = 6,
-	.tri_motor_acceleration       = 18,
-	.tri_servo_angle_at_max       = 400,
-	.tri_servo_feedback           = TRI_SERVO_FB_RSSI,
+    .tri_motor_acc_yaw_correction = 6,
+    .tri_motor_acceleration       = 18,
+    .tri_servo_angle_at_max       = 400,
+    .tri_servo_feedback           = TRI_SERVO_FB_RSSI,
     .tri_servo_max_adc            = 0,
     .tri_servo_mid_adc            = 0,
     .tri_servo_min_adc            = 0,
-	.tri_tail_motor_index         = 0,
-	.tri_tail_motor_thrustfactor  = 138,
-	.tri_tail_servo_speed         = 300,
-	.tri_yaw_boost                = 100,
+    .tri_tail_motor_index         = 0,
+    .tri_tail_motor_thrustfactor  = 138,
+    .tri_tail_servo_speed         = 300,
+    .tri_yaw_boost                = 100,
 );
 
 enum {
@@ -127,8 +125,8 @@ void triInitMixer(servoParam_t *pTailServoConfig, int16_t *pTailServoOutput)
     tailMotor.acceleration        = (float) tailMotor.outputRange / triflightConfig()->tri_motor_acceleration;
 
     initYawForceCurve();
-	
-	triServoDirection = triGetServoDirection();
+    
+    triServoDirection = triGetServoDirection();
  }
 
 static float motorToThrust(float motor)
@@ -143,21 +141,19 @@ static void initYawForceCurve(void)
     const int16_t minAngle = tailServo.angleAtMin;
     const int16_t maxAngle = tailServo.angleAtMax;
     
-	float maxNegForce = 0;
+    float maxNegForce = 0;
     float maxPosForce = 0;
-
-    tailServo.pitchZeroAngle = 2.0f * atanf((sqrtf(tailServo.thrustFactor * tailServo.thrustFactor + 1) + 1) / tailServo.thrustFactor);
 
     int16_t angle = TRI_CURVE_FIRST_INDEX_ANGLE;
     
-	for (int32_t i = 0; i < TRI_YAW_FORCE_CURVE_SIZE; i++) {
+    for (int32_t i = 0; i < TRI_YAW_FORCE_CURVE_SIZE; i++) {
         const float angleRad = DEGREES_TO_RADIANS(angle);
 
-        yawOutputGainCurve[i] = (-tailServo.thrustFactor * cosf(angleRad) - sinf(angleRad));
+        yawOutputGainCurve[i] = -tailServo.thrustFactor * cosf(angleRad) - sinf(angleRad);
         
-		motorPitchCorrectionCurve[i] = tailMotor.pitchCorrectionGain * getPitchCorrectionAtTailAngle(angleRad, tailServo.thrustFactor);
+        motorPitchCorrectionCurve[i] = tailMotor.pitchCorrectionGain * getPitchCorrectionAtTailAngle(angleRad, tailServo.thrustFactor);
         
-		// Only calculate the top forces in the configured angle range
+        // Only calculate the top forces in the configured angle range
         if ((angle >= minAngle) && (angle <= maxAngle)) {
             maxNegForce = MIN(yawOutputGainCurve[i], maxNegForce);
             maxPosForce = MAX(yawOutputGainCurve[i], maxPosForce);
@@ -168,16 +164,16 @@ static void initYawForceCurve(void)
     float minLinearAngle;
     float maxLinearAngle;
     
-	if (ABS(maxPosForce) < ABS(maxNegForce)) {
+    if (ABS(maxPosForce) < ABS(maxNegForce)) {
         const float maxOutput = ABS(maxPosForce);
         
-		maxLinearAngle = maxAngle;
+        maxLinearAngle = maxAngle;
         
-		const uint32_t indexMax = TRI_YAW_FORCE_CURVE_SIZE - 1;
+        const uint32_t indexMax = TRI_YAW_FORCE_CURVE_SIZE - 1;
         
-		tailServo.maxYawOutput = maxOutput * motorToThrust(motorPitchCorrectionCurve[indexMax]);
+        tailServo.maxYawOutput = maxOutput * motorToThrust(motorPitchCorrectionCurve[indexMax]);
         
-		minLinearAngle = binarySearchOutput(-tailServo.maxYawOutput, 0);
+        minLinearAngle = binarySearchOutput(-tailServo.maxYawOutput, 0);
     } else {
         // This would be the case if tail motor is spinning CW
         // Not supported yet
@@ -256,7 +252,7 @@ int16_t triGetMotorCorrection(uint8_t motorIndex)
         }
         tailMotor.lastCorrection = correction;
         
-		DEBUG_SET(DEBUG_TRIFLIGHT, DEBUG_TRI_MOTOR_CORRECTION, 1000 + correction);
+        DEBUG_SET(DEBUG_TRIFLIGHT, DEBUG_TRI_MOTOR_CORRECTION, 1000 + correction);
     }
 
     return correction;
@@ -291,49 +287,49 @@ static uint16_t getServoValueAtAngle(servoParam_t *servoConf, float angle)
     uint16_t servoValue;
 
     if (angle == TRI_TAIL_SERVO_ANGLE_MID)
-	{
+    {
         servoValue = servoMid;
     }
-	else
-	{
+    else
+    {
         const float angleRange = tailServo.maxDeflection;
         
-		float angleDiff;
+        float angleDiff;
         
-		int8_t servoRange; // -1 == min-mid, 1 == mid-max
+        int8_t servoRange; // -1 == min-mid, 1 == mid-max
 
         if (angle < TRI_TAIL_SERVO_ANGLE_MID)
-		{
+        {
             angleDiff = TRI_TAIL_SERVO_ANGLE_MID - angle;
             if (triServoDirection > 0)
-			{
+            {
                 servoRange = -1;
             }
-			else
-			{
+            else
+            {
                 servoRange = 1;
             }
         }
-		else
-		{
+        else
+        {
             angleDiff = angle - TRI_TAIL_SERVO_ANGLE_MID;
             if (triServoDirection > 0)
-			{
+            {
                 servoRange = 1;
             }
-			else
-			{
+            else
+            {
                 servoRange = -1;
             }
         }
         if (servoRange < 0)
-		{
+        {
             const float servoMin = servoConf->min;
 
             servoValue = servoMid - angleDiff * (servoMid - servoMin) / angleRange;
         }
-		else
-		{
+        else
+        {
             const float servoMax = servoConf->max;
 
             servoValue = lroundf(servoMid + angleDiff * (servoMax - servoMid) / angleRange);
@@ -348,7 +344,7 @@ static float getPitchCorrectionAtTailAngle(float angle, float thrustFactor)
     const float pitchCorrection = 1.0f / (sin_approx(angle) - cos_approx(angle) / thrustFactor);
     const float motorCorrection = (tailMotor.outputRange * pitchCorrection) - tailMotor.outputRange;
     
-	return motorCorrection;
+    return motorCorrection;
 }
 
 static float binarySearchOutput(float yawOutput, float motorWoPitchCorr)
@@ -380,29 +376,29 @@ static float getAngleForYawOutput(float yawOutput)
 
     float motorWoPitchCorr = tailMotor.virtualFeedBack - tailMotor.minOutput - tailMotor.lastCorrection;
     
-	motorWoPitchCorr       = MAX(tailMotor.linearMinOutput, motorWoPitchCorr);
+    motorWoPitchCorr       = MAX(tailMotor.linearMinOutput, motorWoPitchCorr);
     
-	if (yawOutput < (motorToThrust((motorWoPitchCorr + motorPitchCorrectionCurve[0])) * yawOutputGainCurve[0]))
-	{
+    if (yawOutput < (motorToThrust((motorWoPitchCorr + motorPitchCorrectionCurve[0])) * yawOutputGainCurve[0]))
+    {
         // No force that low
         angle = tailServo.angleAtLinearMin;
     }
-	else if (yawOutput > (motorToThrust((motorWoPitchCorr + motorPitchCorrectionCurve[TRI_YAW_FORCE_CURVE_SIZE - 1])) * yawOutputGainCurve[TRI_YAW_FORCE_CURVE_SIZE - 1]))
-	{
+    else if (yawOutput > (motorToThrust((motorWoPitchCorr + motorPitchCorrectionCurve[TRI_YAW_FORCE_CURVE_SIZE - 1])) * yawOutputGainCurve[TRI_YAW_FORCE_CURVE_SIZE - 1]))
+    {
         // No force that high
         angle = tailServo.angleAtLinearMax;
     }
-	else
-	{
+    else
+    {
         // Binary search: yawForceCurve[lower] <= force, yawForceCurve[higher] > force
         angle = binarySearchOutput(yawOutput, motorWoPitchCorr);
 
         if (angle < tailServo.angleAtLinearMin)
-		{
+        {
             angle = tailServo.angleAtLinearMin;
         }
-		else if (angle > tailServo.angleAtLinearMax)
-		{
+        else if (angle > tailServo.angleAtLinearMax)
+        {
             angle = tailServo.angleAtLinearMax;
         }
     }
@@ -427,16 +423,16 @@ static float virtualServoStep(float currentAngle, int16_t servoSpeed, float dT, 
     const float dA            = dT * servoSpeed; // Max change of an angle since last check
 
     if (ABS(currentAngle - angleSetPoint) < dA)
-	{
+    {
         // At set-point after this moment
         currentAngle = angleSetPoint;
     }
-	else if (currentAngle < angleSetPoint)
-	{
+    else if (currentAngle < angleSetPoint)
+    {
         currentAngle += dA;
     }
-	else
-	{
+    else
+    {
         // tailServoAngle.virtual > angleSetPoint
         currentAngle -= dA;
     }
@@ -457,32 +453,32 @@ static float feedbackServoStep(uint16_t tailServoADC)
     const float currentAngle      = (endAngle - TRI_TAIL_SERVO_ANGLE_MID) * (ADCFeedback - midValue) /
                                     (endValue - midValue) + TRI_TAIL_SERVO_ANGLE_MID;
     
-	return currentAngle;
+    return currentAngle;
 }
 
 static void updateServoAngle(float dT)
 {
     if (triflightConfig()->tri_servo_feedback == TRI_SERVO_FB_VIRTUAL)
-	{
+    {
         tailServo.angle = virtualServoStep(tailServo.angle, tailServo.speed, dT, tailServo.pConf, *tailServo.pOutput);
     }
-	else
-	{
+    else
+    {
         // Read new servo feedback signal sample and run it through filter
         static pt1Filter_t tailServoFeedbackFilter;
-		const uint16_t ADCRaw = pt1FilterApply4(&tailServoFeedbackFilter, adcGetChannel(tailServo.ADCChannel), TRI_SERVO_FEEDBACK_LPF_CUTOFF_HZ, dT);    
+        const uint16_t ADCRaw = pt1FilterApply4(&tailServoFeedbackFilter, adcGetChannel(tailServo.ADCChannel), TRI_SERVO_FEEDBACK_LPF_CUTOFF_HZ, dT);    
         tailServo.angle       = feedbackServoStep(ADCRaw);
    	    tailServo.ADCRaw      = ADCRaw;
     }
 
     if ((tailServo.angle < (TRI_TAIL_SERVO_INVALID_ANGLE_MIN)) ||
         (tailServo.angle > (TRI_TAIL_SERVO_INVALID_ANGLE_MAX)))
-	{
+    {
         tailServo.feedbackHealthy = false;
         preventArming(TRI_ARMING_PREVENT_FLAG_INVALID_SERVO_ANGLE, true);
     }
-	else
-	{
+    else
+    {
         tailServo.feedbackHealthy = true;
         preventArming(TRI_ARMING_PREVENT_FLAG_INVALID_SERVO_ANGLE, false);
     }
@@ -492,7 +488,7 @@ static adcFunction_e getServoFeedbackADCChannel(uint8_t tri_servo_feedback)
 {
     adcFunction_e channel;
     switch (tri_servo_feedback)
-	{
+    {
     case TRI_SERVO_FB_RSSI:
         channel = ADC_RSSI;
         break;
@@ -538,50 +534,50 @@ static void tailMotorStep(int16_t setpoint, float dT)
 {
     static float current = 1000;
     
-	const float dS = dT * tailMotor.acceleration; // Max change of an speed since last check
+    const float dS = dT * tailMotor.acceleration; // Max change of an speed since last check
 
     if (ABS(current - setpoint) < dS)
-	{
+    {
         // At set-point after this moment
         current = setpoint;
     }
-	else if (current < setpoint)
-	{
+    else if (current < setpoint)
+    {
         current += dS;
     }
-	else
-	{
+    else
+    {
         current -= dS;
     }
     
-	// Use a PT1 low-pass filter to add "slowness" to the virtual motor feedback.
+    // Use a PT1 low-pass filter to add "slowness" to the virtual motor feedback.
     // Cut-off to delay:
     // 2  Hz -> 25 ms
     // 5  Hz -> 14 ms
     // 10 Hz -> 9  ms
     
-	static pt1Filter_t tailMotorFeedbackFilter;
-	
-	tailMotor.virtualFeedBack = pt1FilterApply4(&tailMotorFeedbackFilter, current, TRI_MOTOR_FEEDBACK_LPF_CUTOFF_HZ, dT);
-	
-	DEBUG_SET(DEBUG_TRIFLIGHT, DEBUG_TRI_TAIL_MOTOR, tailMotor.virtualFeedBack);
+    static pt1Filter_t tailMotorFeedbackFilter;
+    
+    tailMotor.virtualFeedBack = pt1FilterApply4(&tailMotorFeedbackFilter, current, TRI_MOTOR_FEEDBACK_LPF_CUTOFF_HZ, dT);
+    
+    DEBUG_SET(DEBUG_TRIFLIGHT, DEBUG_TRI_TAIL_MOTOR, tailMotor.virtualFeedBack);
 }
 
 static int8_t triGetServoDirection(void)
 {
     for (uint8_t index = 0; index < MAX_SERVO_RULES; index++)
-	{
-		if ((customServoMixers(index)->targetChannel == SERVO_RUDDER) &&
-		    (customServoMixers(index)->inputSource == INPUT_STABILIZED_YAW))
-			{
-				if (customServoMixers(index)->rate >= 0)
-				    return 1;
-				else
-					return -1;
-			}
-	}
-	
-	return 0;  // Should not get here
+    {
+        if ((customServoMixers(index)->targetChannel == SERVO_RUDDER) &&
+            (customServoMixers(index)->inputSource == INPUT_STABILIZED_YAW))
+            {
+                if (customServoMixers(index)->rate >= 0)
+                    return 1;
+                else
+                    return -1;
+            }
+    }
+    
+    return 0;  // Should not get here
 }
 
 static void preventArming(triArmingPreventFlag_e flag, _Bool enable)
@@ -609,27 +605,27 @@ bool isRcAxisWithinDeadband(int32_t axis, uint8_t minDeadband)
 {
     const int32_t tmp = MIN(ABS(rcCommand[axis]), 500);
     
-	bool ret = false;
+    bool ret = false;
     
-	uint8_t deadband;
+    uint8_t deadband;
     
-	if (axis == YAW)
-	{
+    if (axis == YAW)
+    {
         deadband = rcControlsConfig()->yaw_deadband;
     }
-	else
-	{
+    else
+    {
         deadband = rcControlsConfig()->deadband;
     }
     
-	deadband = MAX(minDeadband, deadband);
+    deadband = MAX(minDeadband, deadband);
     
-	if (tmp <= deadband)
-	{
+    if (tmp <= deadband)
+    {
         ret = true;
     }
     
-	return ret;
+    return ret;
 }
 
 static void triTailTuneStep(servoParam_t *pServoConf, int16_t *pServoVal, float dT)

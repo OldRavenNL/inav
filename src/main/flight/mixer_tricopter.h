@@ -22,11 +22,8 @@
 
 #include "flight/servos.h"
 
-#define DYNAMIC_YAW_MINTHROTTLE_MIN (0)
-#define DYNMAIC_YAW_MINTHROTTLE_MAX (500)
-
-#define DYNAMIC_YAW_MAXTHROTTLE_MIN (0)
-#define DYNAMIC_YAW_MAXTHROTTLE_MAX (100)
+#define LINEAR_MIN_OUTPUT_MIN        (5)
+#define LINEAR_MIN_OUTPUT_MAX        (50)
 
 #define MOTOR_ACC_YAW_CORRECTION_MIN (0)
 #define MOTOR_ACC_YAW_CORRECTION_MAX (200)
@@ -75,19 +72,17 @@
 #define TRI_YAW_FORCE_CURVE_SIZE                (80 + 1)
 
 typedef struct triflightConfig_s {
-    uint16_t tri_dynamic_yaw_minthrottle;
-    uint16_t tri_dynamic_yaw_maxthrottle;
-	uint16_t tri_motor_acc_yaw_correction;
-	uint16_t tri_motor_acceleration;
-	int16_t  tri_servo_angle_at_max;
-	uint8_t  tri_servo_feedback;
+    uint16_t tri_motor_acc_yaw_correction;
+    uint16_t tri_motor_acceleration;
+    int16_t  tri_servo_angle_at_max;
+    uint8_t  tri_servo_feedback;
     uint16_t tri_servo_max_adc;
     uint16_t tri_servo_mid_adc;
     uint16_t tri_servo_min_adc;
-	uint8_t  tri_tail_motor_index;
-	int16_t  tri_tail_motor_thrustfactor;
-	int16_t  tri_tail_servo_speed;
-	uint16_t tri_yaw_boost;
+    uint8_t  tri_tail_motor_index;
+    int16_t  tri_tail_motor_thrustfactor;
+    int16_t  tri_tail_servo_speed;
+    uint16_t tri_yaw_boost;
 } triflightConfig_t;
 
 PG_DECLARE(triflightConfig_t, triflightConfig);
@@ -183,7 +178,6 @@ typedef struct tailServo_s {
     adcFunction_e ADCChannel;
     float maxDeflection;
     int16_t speed;
-    float pitchZeroAngle;
     float angleAtMin;
     float angleAtMax;
     float angleAtLinearMin;
